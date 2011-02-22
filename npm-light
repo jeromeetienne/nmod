@@ -17,7 +17,7 @@ var fetchUrl	= function(urlStr, dataCb, errorCb){
 	var req	= require('http').request(options, function(res) {
 		//console.log('STATUS: ' + res.statusCode);
 		//console.log('HEADERS: ' + JSON.stringify(res.headers));
-		res.setEncoding('utf8');
+		res.setEncoding('binary');
 		res.on('data', function(chunk){
 			//console.log('BODY: ' + chunk);
 			data += chunk;
@@ -30,41 +30,56 @@ var fetchUrl	= function(urlStr, dataCb, errorCb){
 	req.on('error', errorCb);
 }
 
+var getTarballUrl	= function(pkgName, successCb, failureCb){
+	successCb	= successCb || function(url){};
+	failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+	var version	= "latest";	// TODO make this tunable
+	var pkgJsonUrl	= "http://registry.npmjs.org/"+pkgName+"/"+version;
+	fetchUrl(pkgJsonUrl, function(dataJson){
+		var data	= JSON.parse(dataJson)
+		successCb(data.dist.tarball)
+	}, function(error){
+		failureCb(error);
+	})	
+}
 
 
-//var packageJsonUrl	= "http://registry.npmjs.org/express/latest"
-////var url	= "https://github.com/isaacs/ryp/raw/master/ryp";
-//fetchUrl(packageJsonUrl, function(dataJson){
-//	var data	= JSON.parse(dataJson)
-//	var tarballUrl	= data.dist.tarball;
-//	console.log("data", JSON.stringify(data))
-//	console.log("tarballs", tarballUrl)
+var untarData	= function(data, dstDirName, successCb, failureCb){
+	successCb	= successCb || function(){};
+	failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+	var tmpName	= "/tmp/npm-light-"+Math.floor(Math.random()*999999).toString(36)+".tgz"
+	require('fs').writeFileSync(tmpName, data, "binary")
+
+	var cmdline	= "tar"
+	var cmdArgs	= ["-C", dstDirName, "-zxf", tmpName];
+	var spawn	= require('child_process').spawn(cmdline, cmdArgs);
+	spawn.on('exit', function(exitStatus){
+		if( exitStatus == 0 )	successCb()
+		else			failureCb(exitStatus);
+		require('fs').unlinkSync(tmpName);	
+	})
+}
+
+var pkgName	= "underscore";
+getTarballUrl(pkgName, function(tarUrl){
+	console.log("tarUrl", tarUrl);
+	fetchUrl(tarUrl, function(tarData){
+		var tmpDirname	= "./node_modules/.tmp/";
+		untarData(tarData, tmpDirname, function(){
+			console.log("untar succeed")
+		})
+	})
+}, function(error){
+	console.log("error", error)
+	console.assert(false);
+});
+
+//var tarballUrl	= "http://registry.npmjs.org/express/-/express-1.0.7.tgz";
+//fetchUrl(tarballUrl, function(data){
+//	console.log("data len", data.length)
+//	untarData(data, "/tmp")
 //}, function(error){
 //	console.log("error", error)
 //	console.assert(false);
 //})
-
-var untarData	= function(data, successCb, failureCb){
-	var tmpName	= "/tmp/prout.tgz"
-	require('fs').writeFileSync(tmpName, data)
-	var cmdline	= "tar -zxf '"+tmpName+"'"
-	var child	= require('child_process').exec(cmdline, function(error, stdout, stderr){
-		console.log('stdout: ' + stdout);
-		console.log('stderr: ' + stderr);
-		if (error !== null) {
-			console.log('exec error: ' + error);
-		}
-	});
-	
-	
-	require('fs').unlinkSync(tmpName);	
-}
-
-var tarballUrl	= "http://registry.npmjs.org/express/-/express-1.0.7.tgz";
-fetchUrl(tarballUrl, function(data){
-	console.log("data len", data.length)
-}, function(error){
-	console.log("error", error)
-	console.assert(false);
-})
-
+//
