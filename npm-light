@@ -1,0 +1,70 @@
+#!/usr/bin/env node
+
+/**
+ * Fetch content of a url
+*/
+var fetchUrl	= function(urlStr, dataCb, errorCb){
+	dataCb	= dataCb || function(data){}
+	errorCb	= errorCb || function(error){}
+	var url	= require('url').parse(urlStr);
+	var data= "";
+	var options = {
+		host	: url.hostname,
+		port	: (url.port||80),
+		path	: url.pathname
+	};
+	console.log("fetching", urlStr)
+	var req	= require('http').request(options, function(res) {
+		//console.log('STATUS: ' + res.statusCode);
+		//console.log('HEADERS: ' + JSON.stringify(res.headers));
+		res.setEncoding('utf8');
+		res.on('data', function(chunk){
+			//console.log('BODY: ' + chunk);
+			data += chunk;
+		});
+		res.on('end', function(){
+			dataCb(data);
+		});
+	});
+	req.end();
+	req.on('error', errorCb);
+}
+
+
+
+//var packageJsonUrl	= "http://registry.npmjs.org/express/latest"
+////var url	= "https://github.com/isaacs/ryp/raw/master/ryp";
+//fetchUrl(packageJsonUrl, function(dataJson){
+//	var data	= JSON.parse(dataJson)
+//	var tarballUrl	= data.dist.tarball;
+//	console.log("data", JSON.stringify(data))
+//	console.log("tarballs", tarballUrl)
+//}, function(error){
+//	console.log("error", error)
+//	console.assert(false);
+//})
+
+var untarData	= function(data, successCb, failureCb){
+	var tmpName	= "/tmp/prout.tgz"
+	require('fs').writeFileSync(tmpName, data)
+	var cmdline	= "tar -zxf '"+tmpName+"'"
+	var child	= require('child_process').exec(cmdline, function(error, stdout, stderr){
+		console.log('stdout: ' + stdout);
+		console.log('stderr: ' + stderr);
+		if (error !== null) {
+			console.log('exec error: ' + error);
+		}
+	});
+	
+	
+	require('fs').unlinkSync(tmpName);	
+}
+
+var tarballUrl	= "http://registry.npmjs.org/express/-/express-1.0.7.tgz";
+fetchUrl(tarballUrl, function(data){
+	console.log("data len", data.length)
+}, function(error){
+	console.log("error", error)
+	console.assert(false);
+})
+
