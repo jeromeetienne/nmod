@@ -1,0 +1,355 @@
+#!/usr/bin/env node
+/**
+ * It should be installable from the npm database
+ * AND from github directly
+*/
+
+
+
+
+var utils	= {
+	/**
+	 * Fetch content of a url
+	 *
+	 * @param {string} urlStr the url to fetch
+	 * @param {Function} dataCb is a function(data){} notified with received data
+	 * @param {Function} errorCb is a function(error){} notified when an error occurs
+	*/
+	fetchUrl	: function(urlStr, dataCb, errorCb){
+		dataCb	= dataCb || function(data){}
+		errorCb	= errorCb || function(error){}
+		var url	= require('url').parse(urlStr);
+		var data= "";
+		var options = {
+			host	: url.hostname,
+			port	: (url.port||80),
+			path	: url.pathname
+		};
+		console.log("fetching", urlStr)
+		var req	= require('http').request(options, function(res) {
+			//console.log('STATUS: ' + res.statusCode);
+			//console.log('HEADERS: ' + JSON.stringify(res.headers));
+			res.setEncoding('binary');
+			res.on('data', function(chunk){
+				//console.log('BODY: ' + chunk);
+				data += chunk;
+			});
+			res.on('end', function(){
+				dataCb(data);
+			});
+		});
+		req.end();
+		req.on('error', errorCb);
+	},
+	
+	/**
+	 * like mkdir -p
+	 *
+	 * - FIXME it doesnt handle the depth. handle the recursive
+	*/
+	mkdir_pSync	: function(dirname, mode){
+		var fs		= require('fs');
+		var path	= require('path');
+		// normalize dirname
+		dirname	= path.resolve(process.cwd(), dirname)
+		dirname	= path.normalize(dirname).replace(/\/$/, '');
+		var names	= dirname.split('/');
+		var fullname	= "";
+		names.forEach(function(name, idx){
+			var stats	= null;
+			fullname	+= (idx != 1 ? '/' : '')+name;
+			try {
+				stats	= fs.statSync(fullname);
+			}catch(e){}
+			if( stats && stats.isDirectory() )	return;
+			fs.mkdirSync(fullname, mode);
+		})
+	},
+
+	/**
+	 * Do a rm-rf in node
+	*/
+	rm_rfSync	: function(dirName){
+		console.log("rm_rfSync", dirName)
+		var fs		= require('fs')
+		var stats	= null;
+		try {
+			stats	= fs.lstatSync(dirName)			
+		}catch(e){
+			return;	// silently ignore if the dirName doesnt exist
+		}
+		if( !stats.isDirectory() ){
+			fs.unlinkSync(dirName);
+			return
+		}
+		fs.readdirSync(dirName).forEach(function(basename){
+			var fullpath	= require('path').join(dirName, basename);
+			utils.rm_rfSync( fullpath )
+		})
+		fs.rmdirSync(dirName);
+	},
+	
+	/**
+	 * return true if the path exist, false otherwiser
+	*/
+	existSync	: function(path){
+		try {
+			require('fs').statSync(path);
+		}catch(e){
+			return false;
+		}
+		return true;
+	},
+	
+	/**
+	*/
+	untarData	: function(data, dstDirName, successCb, failureCb){
+		successCb	= successCb || function(){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		var tmpName	= "/tmp/nmods-"+Math.floor(Math.random()*999999).toString(36)+".tgz"
+		require('fs').writeFileSync(tmpName, data, "binary")
+	
+		var cmdArgs	= ["-C", dstDirName, "-zxf", tmpName];
+		var spawn	= require('child_process').spawn("tar", cmdArgs);
+console.log("cmdArgs", cmdArgs)
+		spawn.on('exit', function(exitStatus){
+			if( exitStatus == 0 )	successCb()
+			else			failureCb(exitStatus);
+			require('fs').unlinkSync(tmpName);
+		})
+	},
+};
+
+var nmods	= function(cmdline, cmdopts){
+	var ROOTDIR	= cmdopts.rootdir	|| ".";
+	/**
+	 * Fetch the package.json of the package
+	*/
+	var getPackageJson	= function(pkgName, pkgVers, successCb, failureCb){
+		successCb	= successCb || function(data){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		var pkgJsonUrl	= "http://registry.npmjs.org/"+pkgName+"/"+pkgVers;
+		console.log("pkgJsonUrl", pkgJsonUrl)
+		utils.fetchUrl(pkgJsonUrl, function(dataJson){
+			successCb(JSON.parse(dataJson));
+		}, function(error){
+			failureCb(error);
+		})
+	}
+	/**
+	 * Fetch the meta.json of the package
+	 *
+	 * - http://registry.npmjs.org/{packagename}
+	 * - Returns the JSON document for this package. Includes all known dists and metadata
+	*/
+	var getMetaJson	= function(pkgName, successCb, failureCb){
+		successCb	= successCb || function(data){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		var metaJsonUrl	= "http://registry.npmjs.org/"+pkgName;
+		console.log("metaJsonUrl", metaJsonUrl)
+		utils.fetchUrl(metaJsonUrl, function(dataJson){
+			successCb(JSON.parse(dataJson));
+		}, function(error){
+			failureCb(error);
+		})
+	}
+
+	/**
+	 * find the pkgVers which match the pkgVersRange for pkgName
+	*/
+	var findMatchPkgVers	= function(pkgName, pkgVersRange, successCb, failureCb){
+		successCb	= successCb || function(pkgVers){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		var semver	= require('./semver.js')
+		getMetaJson(pkgName, function(metaJson){
+			var latestVers	= metaJson['dist-tags'].latest;
+			if( semver.satisfies(latestVers, pkgVersRange) ){
+				successCb(latestVers);
+			}else{
+				failureCb("no version match");			
+			}
+		})
+	}
+
+
+	/**
+	 * Return the .tar url in the package.json of pkgName/pkgVers
+	*/
+	var getTarUrl	= function(pkgName, pkgVers, successCb, failureCb){
+		successCb	= successCb || function(url){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		getPackageJson(pkgName, pkgVers, function(data){
+			successCb(data.dist.tarball)
+		}, function(error){
+			failureCb(error)
+		})
+	}
+	
+	/**
+	 * fetch dependencies in the package.json of pkgName/pkgVers
+	*/
+	var getDeps	= function(pkgName, pkgVers, successCb, failureCb){
+		successCb	= successCb || function(url){};
+		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
+		getPackageJson(pkgName, pkgVers, function(data){
+			successCb(data.dependencies)
+		}, function(error){
+			failureCb(error)
+		})
+	}
+
+
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+	//									//
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+
+
+	/**
+	 * List all installed packages in the ROOTDIR
+	 *
+	 * - NOTE: this command is sync
+	*/
+	var doCmdLs	= function(){
+		var fs		= require('fs');
+		var dirname	= ROOTDIR+"/node_modules";
+		var basenames	= [];
+		try {
+			var basenames	= fs.readdirSync(dirname).sort();			
+		}catch(e){}
+		basenames.forEach(function(basename){
+			var fullpath	= dirname+"/"+basename;
+			// display this one
+			console.log(fullpath);
+			// reccurse if needed
+			try {
+				if( fs.statSync(fullpath).isDirectory() ){
+					nmods(["ls"], { rootdir	: fullpath });
+				}				
+			}catch(e){}
+		})
+	}
+
+	/**
+	 * Uninstall a package
+	 *
+	 * - note: no version here. as a given pkgName can have a single instance
+	 *   in a given node_modules directory
+	 * - NOTE: this command is sync
+	*/
+	var doCmdRm	= function(pkgName){
+		var dirname	= ROOTDIR+"/node_modules/"+pkgName;
+		utils.rm_rfSync(dirname)
+	}
+
+
+
+	var doCmdInstall	= function(pkgName, pkgVersRange){
+		console.log("pkgName", pkgName, "pkgVersRange", pkgVersRange)
+
+		// TODO what if already installed
+
+		findMatchPkgVers(pkgName, pkgVersRange, function(pkgVers){
+			var tmpDirname	= ROOTDIR+"/node_modules/.tmp-"+pkgName+"-"+pkgVers;
+			var dstDirname	= ROOTDIR+"/node_modules/"+pkgName;
+			utils.rm_rfSync(tmpDirname);
+			utils.mkdir_pSync(tmpDirname, 0777);
+		
+			getPackageJson(pkgName, pkgVers, function(pkgJson){
+				var tarUrl	= pkgJson.dist.tarball;
+				console.log("tarUrl", tarUrl);
+				utils.fetchUrl(tarUrl, function(tarData){
+					utils.untarData(tarData, tmpDirname, function(){
+						console.log("untar succeed")
+						// move the untar package from tmpDirname to dstDirname
+						require('fs').rename(tmpDirname+"/package", dstDirname);
+						// remove tmpDirname
+						utils.rm_rfSync(tmpDirname);
+						// overwrite the package.json with the one from the server
+						// - not sure why it is needed, but ryp is doing it
+						// - maybe the package.json is canonized by the server... as isaacs
+						require('fs').writeFileSync(dstDirname+"/package.json", JSON.stringify(pkgJson), "binary")
+						// compile native extensions if needed
+						if( utils.existSync(dstDirname+"wscript") ){
+							//  ( cd ./node_modules/$pkg &>/dev/null; node-waf configure build )
+							console.assert(false, "not yet implemented")
+						}
+						// install the dependancies 
+						nmods(["deps"], { rootdir : dstDirname });
+					})
+				})
+			});
+		});
+	}
+
+	/**
+	 * Install dependencies from package.json file.
+	*/
+	var doCmdDeps	= function(){
+		var filename	= ROOTDIR+"/package.json";
+		var dataJson	= require('fs').readFileSync(filename);
+		var data	= JSON.parse(dataJson);
+		var deps	= data.dependencies	|| {};
+		Object.keys(deps).forEach(function(pkgName){
+			var pkgVersRange	= data.dependencies[pkgName];
+			console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
+			// install the dependancies 
+			nmods(["install", pkgName, pkgVersRange], { rootdir : ROOTDIR });			
+		})
+	}
+
+
+	var parseCmdline	= function(argv){
+		if( argv[0] == "ls" ){
+			return doCmdLs();
+		}else if( argv[0] == "install" ){
+			console.assert( argv.length == 2 || argv.length == 3);
+			return doCmdInstall(argv[1], argv[2] || ">= 0.0.0");
+		}else if( argv[0] == "deps" ){
+			console.assert( argv.length == 1 );
+			return doCmdDeps();
+		}else if( argv[0] == "rm" ){
+			console.assert( argv.length == 2 )
+			return doCmdRm(argv[1]);
+		}else if( argv.length == 0 || argv[0] == "help"){
+			console.log("nmods: install node_modules from npm or git")
+			console.log("nmods deps         - Install dependencies from package.json file");
+			console.log("nmods install      - Install a package, and nest its deps.");
+			console.log("nmods rm           - Remove a package");
+			console.log("nmods ls           - Show installed packages.");
+		}else{
+			console.log("Command "+argv[0]+" is unknown")
+		}
+		return undefined;
+	}
+	
+	parseCmdline(cmdline)
+
+	/**
+	 * Return public methods
+	*/
+	return {
+		// TODO should i put something in there ?	
+	}
+}
+
+
+/**
+*/
+//nmods(["ls"], {	rootdir	: "/tmp/slota" })
+//nmods(["install", "underscore"], {	rootdir	: "/tmp/bla" })
+//nmods(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
+
+//utils.rm_rfSync("/tmp/bla/node_modules")
+//nmods(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
+//nmods(["install", "express"], {	rootdir	: "/tmp/bla" })
+
+//utils.mkdir_pSync("/tmp/slota/wow", 0777)
+//utils.rm_rfSync("/tmp/bla/node_modules")
+
+var ROOTDIR	= process.env["NMODS_ROOT"]	|| '.';
+nmods(process.argv.slice(2), {rootdir: ROOTDIR})
+
+
+
