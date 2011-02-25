@@ -262,8 +262,12 @@ var nmods	= function(cmdline, cmdopts){
 				utils.fetchUrl(tarUrl, function(tarData){
 					utils.untarData(tarData, tmpDirname, function(){
 						console.log("untar succeed")
+						// get the root directory basename from the package
+						var basenames	= require('fs').readdirSync(tmpDirname);
+						console.assert(basenames.length === 1)
+						console.log("moving", tmpDirname+"/"+basenames[0], "to", dstDirname)
 						// move the untar package from tmpDirname to dstDirname
-						require('fs').rename(tmpDirname+"/package", dstDirname);
+						require('fs').rename(tmpDirname+"/"+basenames[0], dstDirname);
 						// remove tmpDirname
 						utils.rm_rfSync(tmpDirname);
 						// overwrite the package.json with the one from the server

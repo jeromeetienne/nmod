@@ -1,9 +1,23 @@
 ### TODO
 * provide at least as much as ryp
-* install from npm and git
 * better feedback to the user
   * download progress
   * error message
+* install from npm and git
+  * first publish without git
+  
+
+### NOTES (wondering if not too complex)
+  
+* i loved node_modulew design
+  * regular, simple yet powerfull
+* package.json dependencies
+  * one from node modules
+  * one from nmods
+* how to offer a pure git solution?
+  * something ignored by npm and accepted by nmods
+  * somthing which give a way to ref module by their git url
+* need simple instruction for packager to support it
 
 ### DONE
 * FIXED still some bugs in install with deps
