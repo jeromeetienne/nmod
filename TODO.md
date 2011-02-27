@@ -5,6 +5,8 @@
   * error message
 * install from npm and git
   * first publish without git
+* name: im not sure about the S in nmods
+  * i prefere to type nmod when i use it
   
 
 ### NOTES (wondering if not too complex)
