@@ -4,7 +4,6 @@
  * AND from github directly
 */
 
-
 var utils	= {
 	/**
 	 * Fetch content of a url
@@ -104,7 +103,7 @@ var utils	= {
 	untarData	: function(data, dstDirName, successCb, failureCb){
 		successCb	= successCb || function(){};
 		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
-		var tmpName	= "/tmp/nmods-"+Math.floor(Math.random()*999999).toString(36)+".tgz"
+		var tmpName	= "/tmp/nmod-"+Math.floor(Math.random()*999999).toString(36)+".tgz"
 		require('fs').writeFileSync(tmpName, data, "binary")
 	
 		var cmdArgs	= ["-C", dstDirName, "-zxf", tmpName];
@@ -118,7 +117,7 @@ console.log("cmdArgs", cmdArgs)
 	},
 };
 
-var nmods	= function(cmdline, cmdopts){
+var nmod	= function(cmdline, cmdopts){
 	var ROOTDIR	= cmdopts.rootdir	|| ".";
 	/**
 	 * Fetch the package.json of the package
@@ -223,7 +222,7 @@ var nmods	= function(cmdline, cmdopts){
 			// reccurse if needed
 			try {
 				if( fs.statSync(fullpath).isDirectory() ){
-					nmods(["ls"], { rootdir	: fullpath });
+					nmod(["ls"], { rootdir	: fullpath });
 				}				
 			}catch(e){}
 		})
@@ -278,7 +277,7 @@ var nmods	= function(cmdline, cmdopts){
 							console.assert(false, "not yet implemented")
 						}
 						// install the dependancies 
-						nmods(["deps"], { rootdir : dstDirname });
+						nmod(["deps"], { rootdir : dstDirname });
 					})
 				})
 			});
@@ -297,7 +296,7 @@ var nmods	= function(cmdline, cmdopts){
 			var pkgVersRange	= data.dependencies[pkgName];
 			console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
 			// install the dependancies 
-			nmods(["install", pkgName, pkgVersRange], { rootdir : ROOTDIR });			
+			nmod(["install", pkgName, pkgVersRange], { rootdir : ROOTDIR });			
 		})
 	}
 
@@ -315,11 +314,11 @@ var nmods	= function(cmdline, cmdopts){
 			console.assert( argv.length == 2 )
 			return doCmdRm(argv[1]);
 		}else if( argv.length == 0 || argv[0] == "help"){
-			console.log("nmods: install node_modules from npm or git")
-			console.log("nmods deps         - Install dependencies from package.json file");
-			console.log("nmods install      - Install a package, and nest its deps.");
-			console.log("nmods rm           - Remove a package");
-			console.log("nmods ls           - Show installed packages.");
+			console.log("nmod: install node_modules from npm or git")
+			console.log("nmod deps         - Install dependencies from package.json file");
+			console.log("nmod install      - Install a package, and nest its deps.");
+			console.log("nmod rm           - Remove a package");
+			console.log("nmod ls           - Show installed packages.");
 		}else{
 			console.log("Command "+argv[0]+" is unknown")
 		}
@@ -339,19 +338,19 @@ var nmods	= function(cmdline, cmdopts){
 
 /**
 */
-//nmods(["ls"], {	rootdir	: "/tmp/slota" })
-//nmods(["install", "underscore"], {	rootdir	: "/tmp/bla" })
-//nmods(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
+//nmod(["ls"], {	rootdir	: "/tmp/slota" })
+//nmod(["install", "underscore"], {	rootdir	: "/tmp/bla" })
+//nmod(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
 
 //utils.rm_rfSync("/tmp/bla/node_modules")
-//nmods(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
-//nmods(["install", "express"], {	rootdir	: "/tmp/bla" })
+//nmod(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
+//nmod(["install", "express"], {	rootdir	: "/tmp/bla" })
 
 //utils.mkdir_pSync("/tmp/slota/wow", 0777)
 //utils.rm_rfSync("/tmp/bla/node_modules")
 
-var ROOTDIR	= process.env["NMODS_ROOT"]	|| '.';
-nmods(process.argv.slice(2), {rootdir: ROOTDIR})
+var ROOTDIR	= process.env["nmod_ROOT"]	|| '.';
+nmod(process.argv.slice(2), {rootdir: ROOTDIR})
 
 
 
