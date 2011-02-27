@@ -24,14 +24,20 @@ var utils	= {
 		};
 		console.log("fetching", urlStr)
 		var req	= require('http').request(options, function(res) {
+			var contentLength	= parseInt(res.headers["content-length"], 10)
 			//console.log('STATUS: ' + res.statusCode);
 			//console.log('HEADERS: ' + JSON.stringify(res.headers));
 			res.setEncoding('binary');
 			res.on('data', function(chunk){
 				//console.log('BODY: ' + chunk);
 				data += chunk;
+				var nbChar	= 40*(data.length/contentLength);
+				process.stdout.write('\r');
+				for(var i = 0; i < nbChar; i++)
+					process.stdout.write('#');
 			});
 			res.on('end', function(){
+				console.log(" Done")
 				dataCb(data);
 			});
 		});
@@ -67,7 +73,7 @@ var utils	= {
 	 * Do a rm-rf in node
 	*/
 	rm_rfSync	: function(dirName){
-		console.log("rm_rfSync", dirName)
+		//console.log("rm_rfSync", dirName)
 		var fs		= require('fs')
 		var stats	= null;
 		try {
@@ -108,7 +114,6 @@ var utils	= {
 	
 		var cmdArgs	= ["-C", dstDirName, "-zxf", tmpName];
 		var spawn	= require('child_process').spawn("tar", cmdArgs);
-console.log("cmdArgs", cmdArgs)
 		spawn.on('exit', function(exitStatus){
 			if( exitStatus == 0 )	successCb()
 			else			failureCb(exitStatus);
@@ -255,10 +260,10 @@ var nmod	= function(cmdline, cmdopts){
 		
 			getPackageJson(pkgName, pkgVers, function(pkgJson){
 				var tarUrl	= pkgJson.dist.tarball;
-				console.log("tarUrl", tarUrl);
+				//console.log("tarUrl", tarUrl);
 				utils.fetchUrl(tarUrl, function(tarData){
+					console.log("untar "+tarUrl)
 					utils.untarData(tarData, tmpDirname, function(){
-						console.log("untar succeed")
 						// get the root directory basename from the package
 						var basenames	= require('fs').readdirSync(tmpDirname);
 						console.assert(basenames.length === 1)
@@ -289,7 +294,12 @@ var nmod	= function(cmdline, cmdopts){
 	*/
 	var doCmdDeps	= function(){
 		var filename	= ROOTDIR+"/package.json";
-		var dataJson	= require('fs').readFileSync(filename);
+		try {
+			var dataJson	= require('fs').readFileSync(filename);			
+		}catch(e){
+			console.log("nmod deps: skipped : no ./package.json")
+			return;
+		}
 		var data	= JSON.parse(dataJson);
 		var deps	= data.dependencies	|| {};
 		Object.keys(deps).forEach(function(pkgName){
@@ -302,7 +312,15 @@ var nmod	= function(cmdline, cmdopts){
 
 
 	var parseCmdline	= function(argv){
-		if( argv[0] == "ls" ){
+		// define aliases
+		var aliases	= {
+			list	: "ls",
+			remove	: "rm"
+		}
+		// honor aliases
+		if( aliases[argv[0]] )	argv[0]	= aliases[argv[0]];
+		
+		if( argv[0] == "ls"){
 			return doCmdLs();
 		}else if( argv[0] == "install" ){
 			console.assert( argv.length == 2 || argv.length == 3);
