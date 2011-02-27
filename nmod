@@ -315,10 +315,10 @@ var nmod	= function(cmdline, cmdopts){
 			return doCmdRm(argv[1]);
 		}else if( argv.length == 0 || argv[0] == "help"){
 			console.log("nmod: install node_modules from npm or git")
-			console.log("nmod deps         - Install dependencies from package.json file");
-			console.log("nmod install      - Install a package, and nest its deps.");
-			console.log("nmod rm           - Remove a package");
-			console.log("nmod ls           - Show installed packages.");
+			console.log("nmod install <package> - Install a package, and nest its deps.");
+			console.log("nmod ls                - Show installed packages.");
+			console.log("nmod rm <package>      - Remove a package");
+			console.log("nmod deps              - Install dependencies from package.json file");
 		}else{
 			console.log("Command "+argv[0]+" is unknown")
 		}
