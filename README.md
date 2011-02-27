@@ -7,3 +7,4 @@ nmod is a simple packages installer based on
 , a [0.4 new feature](https://github.com/joyent/node/blob/v0.4.0/ChangeLog#L5).
 It is cloned on [ryp](https://github.com/isaacs/ryp) but is implemented in node.js.
 
+Thanks to *node_modules* directory, *nmod* installs npm packages locally.
