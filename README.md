@@ -11,19 +11,19 @@ Thanks to *node_modules* principle, *nmod* installs npm packages locally.
 
 ## How to use it ?
 
-to install express in ./node_modules
+To install express in ./node_modules
 
     nmod install express
     
-to list all packages installed in ./node_modules
+To list all packages installed in ./node_modules
 
     nmod ls
 
-to remove express
+To remove express
 
     nmod rm express
 
-all commands
+All commands
 
     nmod install <package> - Install a package, and nest its deps.
     nmod ls                - Show installed packages.
