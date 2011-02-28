@@ -391,6 +391,9 @@ var semver	= {};
 
 var nmod	= function(cmdline, cmdopts){
 	var ROOTDIR	= cmdopts.rootdir	|| ".";
+	var successCb	= cmdopts.successCb	|| function(data){};
+	var failureCb	= cmdopts.failureCb	|| function(error){console.log("error", error); console.assert(false);}
+	
 	/**
 	 * Fetch the package.json of the package
 	*/
@@ -519,10 +522,9 @@ var nmod	= function(cmdline, cmdopts){
 	}
 
 
-
 	var doCmdInstall	= function(pkgName, pkgVersRange){
+		// log to debug
 		//console.log("pkgName", pkgName, "pkgVersRange", pkgVersRange)
-
 		//console.log("Installing "+pkgName+" in "+ ROOTDIR+"/node_modules")
 		
 		// display for the user
@@ -531,10 +533,12 @@ var nmod	= function(cmdline, cmdopts){
 		process.stdout.write(" to be installed in "+(ROOTDIR+"/node_modules")+"\n")
 
 		// TODO what if already installed
+		// - currently this is silently overwritten...
 
 		findMatchPkgVers(pkgName, pkgVersRange, function(pkgVers){
-			var tmpDirname	= ROOTDIR+"/node_modules/.tmp-"+pkgName+"-"+pkgVers;
-			var dstDirname	= ROOTDIR+"/node_modules/"+pkgName;
+			var modDirname	= ROOTDIR+"/node_modules"
+			var tmpDirname	= modDirname+"/.tmp-"+pkgName+"-"+pkgVers;
+			var dstDirname	= modDirname+"/"+pkgName;
 			utils.rm_rfSync(tmpDirname);
 			utils.mkdir_pSync(tmpDirname, 0777);
 		
@@ -551,10 +555,9 @@ var nmod	= function(cmdline, cmdopts){
 
 					// display for the user
 					process.stdout.write(tty_color.code(pkgName)+": ");
-					process.stdout.write("install package in "+ROOTDIR+"/node_modules ... ");
+					process.stdout.write("install package in "+modDirname+" ... ");
 					
 					utils.untarData(tarData, tmpDirname, function(){
-	
 						process.stdout.write("Done\n");
 						
 						// get the root directory basename from the package
@@ -573,10 +576,19 @@ var nmod	= function(cmdline, cmdopts){
 						if( utils.existSync(dstDirname+"wscript") ){
 							//  ( cd ./node_modules/$pkg &>/dev/null; node-waf clean configure build )
 							// - example of native package nTPL
+							// - do this one like the untar
 							console.assert(false, "not yet implemented")
 						}
 						// install the dependancies 
-						nmod(["deps"], { rootdir : dstDirname });
+						nmod(["deps"], {
+							rootdir	 : dstDirname,
+							successCb: function(){
+								// display for the user
+								process.stdout.write(tty_color.code(pkgName)+": installation completed\n");
+								// notify the caller
+								successCb();
+							}
+						});
 					})
 				})
 			});
@@ -596,25 +608,39 @@ var nmod	= function(cmdline, cmdopts){
 			var pkgJsonData	= require('fs').readFileSync(filename);			
 		}catch(e){
 			process.stdout.write(tty_color.code(pkgName)+": skipped : no ./package.json\n")
+			successCb();
 			return;
 		}
 		var pkgJson	= JSON.parse(pkgJsonData);
 		var deps	= pkgJson.dependencies	|| {};
-		var pkgNames	= Object.keys(deps);
-		if( pkgNames.length == 0 ){
+		var depNames	= Object.keys(deps);
+		if( depNames.length == 0 ){
 			process.stdout.write(tty_color.code(pkgName)+": no dependancies in ./package.json\n")
+			successCb();
 			return;
 		}
 		
-		//console.log("installing dependancies from "+filename);
-		pkgNames.forEach(function(depName){
+		// reccursive function to install dependencies sequentially
+		var installDep	= function(depName){
 			var depVersRange	= pkgJson.dependencies[depName];
 			//console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
 			//console.log("Install dependancy "+pkgName+"("+pkgVersRange+") in "+ROOTDIR)
 			process.stdout.write(tty_color.code(pkgName)+": installing dependancy "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
 			// install the dependancies 
-			nmod(["install", depName, depVersRange], { rootdir : ROOTDIR });			
-		})
+			nmod(["install", depName, depVersRange], {
+				rootdir		: ROOTDIR,
+				successCb	: function(){
+					if( depNames.length ){
+						// install the next dependency
+						installDep( depNames.shift() )
+					}else{
+						successCb();
+					}
+				}
+			});			
+		}
+		// launch the install of the first dependancy
+		installDep( depNames.shift() )
 	}
 
 
@@ -670,24 +696,38 @@ var nmod	= function(cmdline, cmdopts){
 //////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * exports nmod thus is is a module itself
 */
-//nmod(["ls"], {	rootdir	: "/tmp/slota" })
-//nmod(["install", "underscore"], {	rootdir	: "/tmp/bla" })
-//nmod(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
+exports.create	= function(cmdline, cmdopts){
+	return new nmod(cmdline, cmdopts);
+}
 
-//utils.rm_rfSync("/tmp/bla/node_modules")
-//nmod(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
-//nmod(["install", "express"], {	rootdir	: "/tmp/bla" })
+/**
+*/
+var main	= function(){
+	//nmod(["ls"], {	rootdir	: "/tmp/slota" })
+	//nmod(["install", "underscore"], {	rootdir	: "/tmp/bla" })
+	//nmod(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
+	
+	//utils.rm_rfSync("/tmp/bla/node_modules")
+	//nmod(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
+	//nmod(["install", "express"], {	rootdir	: "/tmp/bla" })
+	
+	//utils.mkdir_pSync("/tmp/slota/wow", 0777)
+	//utils.rm_rfSync("/tmp/bla/node_modules")
+	
+	// honor NMOD_ROOT if needed, else default to ./
+	var ROOTDIR	= process.env["NMOD_ROOT"]	|| '.';
+	
+	nmod(process.argv.slice(2), {
+		rootdir		: ROOTDIR,
+		successCb	: function(){
+		},
+		failureCb	: function(error){					
+		}				
+	})
+}
 
-//utils.mkdir_pSync("/tmp/slota/wow", 0777)
-//utils.rm_rfSync("/tmp/bla/node_modules")
-
-var ROOTDIR	= process.env["nmod_ROOT"]	|| '.';
-nmod(process.argv.slice(2), {rootdir: ROOTDIR})
-
-
-
-
-
-
-
+if (module === require.main) {
+	main();
+}

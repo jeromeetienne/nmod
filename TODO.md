@@ -1,19 +1,40 @@
 ### BUGS
 
+* nmod install notexistingpkg  do a crash...
+* allow a search
+  * curl "http://search.npmjs.org/_view/search?startkey=%22express%22&endkey=%22expressZZZZZZZZZZZZZZZZZZZ%22&reduce=false"
+  * http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options for docs
+* possible to put url in dependancies. but only .tgz, but github is tar ok
+  * maybe find a shortcut like this
+  * github to get the tgz... not perfect at all... but workable now
+  * in fact nmod should support a tgz as source of package
+  * this is like the usual install without the version resolution
+  * nmod install express
+  * nmod install express '>= 0.0.3'
+  * nmod install http://github.com/slota.tgz
+* read and follow
+  * http://networkimprov.github.com/node-doc-api/all.html#addenda_Package_Manager_Tips
 * better feedback to the user
   * download progress
   * error message
-* put the semver in nmod file
 * issue in the async of install
   * i install all deps at the same time
   * may be faster but disturb the user (and who care about speed in install)
+  * unsure i did some work. not sure on the status but seems to work
+* DONE put the semver in nmod file
 * DONE name: im not sure about the S in nmods
   * i prefere to type nmod when i use it
 
 ### VISION
-* provide at least as much as ryp
+* provide simple way to install packages
+  * standalone
+  * only install package at userlevel
+    * no plist, upstart, /usr/bin and all
 * install from npm and git
-  * first publish without git
+  * first version npm only
+  * git version later
+    * only based on package.json and git repo
+    * thus to publish and all is out of nmod scope
 
 
 ### NOTES (wondering if not too complex)
