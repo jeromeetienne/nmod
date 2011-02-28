@@ -32,7 +32,7 @@ All commands
 
 ## How to install it ?
 
-*nmod* is a [single executable file](http://github.com/jeromeetienne/nmod/raw/master/nmod) in node.js, so easy to install
+*nmod* is a [single node file](http://github.com/jeromeetienne/nmod/raw/master/nmod), so easy to install
 
-    curl http://github.com/jeromeetienne/nmod/raw/master/nmod > /usr/bin/nmod
+    curl -L http://github.com/jeromeetienne/nmod/raw/master/nmod > /usr/bin/nmod
     chmod +x /usr/bin/nmod

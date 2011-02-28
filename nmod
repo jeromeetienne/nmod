@@ -591,15 +591,15 @@ var nmod	= function(cmdline, cmdopts){
 		var filename	= ROOTDIR+"/package.json";
 		// display for the user
 		process.stdout.write(tty_color.code(pkgName)+": installing dependancies in "+(ROOTDIR+"/node_modules")+"\n")
-		
+		// read package.json
 		try {
-			var dataJson	= require('fs').readFileSync(filename);			
+			var pkgJsonData	= require('fs').readFileSync(filename);			
 		}catch(e){
 			process.stdout.write(tty_color.code(pkgName)+": skipped : no ./package.json\n")
 			return;
 		}
-		var data	= JSON.parse(dataJson);
-		var deps	= data.dependencies	|| {};
+		var pkgJson	= JSON.parse(pkgJsonData);
+		var deps	= pkgJson.dependencies	|| {};
 		var pkgNames	= Object.keys(deps);
 		if( pkgNames.length == 0 ){
 			process.stdout.write(tty_color.code(pkgName)+": no dependancies in ./package.json\n")
@@ -608,7 +608,7 @@ var nmod	= function(cmdline, cmdopts){
 		
 		//console.log("installing dependancies from "+filename);
 		pkgNames.forEach(function(depName){
-			var depVersRange	= data.dependencies[depName];
+			var depVersRange	= pkgJson.dependencies[depName];
 			//console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
 			//console.log("Install dependancy "+pkgName+"("+pkgVersRange+") in "+ROOTDIR)
 			process.stdout.write(tty_color.code(pkgName)+": installing dependancy "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
