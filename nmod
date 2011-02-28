@@ -487,6 +487,12 @@ var nmod	= function(cmdline, cmdopts){
 		})
 	}
 	
+	/**
+	 * @param {String} pkgUrl the url of the package to fetch
+	 * @param {String} pkgName the name of the package (display only ?)
+	 * @param {String} pkgVers the version of the package
+	 * @param {Object} pkgJson an potentially better package.json (e.g. from npmjs.org)
+	*/
 	var installFromPkgUrl	= function(pkgUrl, pkgName, pkgVers, pkgJson){
 		utils.fetchUrl(pkgUrl, function(tarData){
 			var modDirname	= ROOTDIR+"/node_modules"

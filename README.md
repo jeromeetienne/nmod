@@ -1,7 +1,7 @@
 # nmod
 
 nmod is a [node_modules](http://nodejs.org/docs/v0.4.1/api/modules.html#loading_from_node_modules_Folders)
-packages installer.
+manager.
 
 node_modules is a [0.4 new feature](https://github.com/joyent/node/blob/v0.4.0/ChangeLog#L5).
 It provides a simple and regular way to install packages (read
