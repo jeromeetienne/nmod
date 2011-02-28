@@ -12,6 +12,7 @@
   * nmod install express
   * nmod install express '>= 0.0.3'
   * nmod install http://github.com/slota.tgz
+  * nmod install https://github.com/isaacs/npm/tarball/v0.3.9
 * read and follow
   * http://networkimprov.github.com/node-doc-api/all.html#addenda_Package_Manager_Tips
 * better feedback to the user

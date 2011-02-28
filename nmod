@@ -391,6 +391,7 @@ var semver	= {};
 
 var nmod	= function(cmdline, cmdopts){
 	var ROOTDIR	= cmdopts.rootdir	|| ".";
+	var prefixStr	= cmdopts.prefixStr	|| "";
 	var successCb	= cmdopts.successCb	|| function(data){};
 	var failureCb	= cmdopts.failureCb	|| function(error){console.log("error", error); console.assert(false);}
 	
@@ -403,7 +404,7 @@ var nmod	= function(cmdline, cmdopts){
 		var pkgJsonUrl	= "http://registry.npmjs.org/"+pkgName+"/"+pkgVers;
 		//console.log("pkgJsonUrl", pkgJsonUrl)
 		//console.log("fetching package.json info for", tty_color.code(pkgName+" "+pkgVers));
-		process.stdout.write(tty_color.code(pkgName)+": fetching package.json info for version "+pkgVers+" ...")
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": fetching package.json info for version "+pkgVers+" ...")
 		utils.fetchUrl(pkgJsonUrl, function(dataJson){
 			successCb(JSON.parse(dataJson));
 		}, function(error){
@@ -421,7 +422,7 @@ var nmod	= function(cmdline, cmdopts){
 		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
 		var metaJsonUrl	= "http://registry.npmjs.org/"+pkgName;
 		//console.log("metaJsonUrl", metaJsonUrl)
-		process.stdout.write(tty_color.code(pkgName)+": fetching meta info ...")
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": fetching meta info ...")
 		utils.fetchUrl(metaJsonUrl, function(dataJson){
 			successCb(JSON.parse(dataJson));
 		}, function(error){
@@ -515,7 +516,7 @@ var nmod	= function(cmdline, cmdopts){
 	var doCmdRm	= function(pkgName){
 		var dirname	= ROOTDIR+"/node_modules/"+pkgName;
 		// display for the user
-		process.stdout.write(tty_color.code(pkgName)+": ");
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 		process.stdout.write("remove package and deps from "+ROOTDIR+"/node_modules ... ");
 		utils.rm_rfSync(dirname)
 		process.stdout.write("Done\n")
@@ -528,7 +529,7 @@ var nmod	= function(cmdline, cmdopts){
 		//console.log("Installing "+pkgName+" in "+ ROOTDIR+"/node_modules")
 		
 		// display for the user
-		process.stdout.write(tty_color.code(pkgName)+": ");
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 		process.stdout.write(pkgVersRange === ">= 0.0.0"? "latest version": ("version "+pkgVersRange));
 		process.stdout.write(" to be installed in "+(ROOTDIR+"/node_modules")+"\n")
 
@@ -547,14 +548,14 @@ var nmod	= function(cmdline, cmdopts){
 				//console.log("tarUrl", tarUrl);
 				
 				// display for the user
-				process.stdout.write(tty_color.code(pkgName)+": ");
+				process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 				process.stdout.write("fetch .tar data for version "+pkgVers+" ...");
 
 				utils.fetchUrl(tarUrl, function(tarData){
 					//console.log("untar "+tarUrl + " in " + ROOTDIR+"/node_modules")
 
 					// display for the user
-					process.stdout.write(tty_color.code(pkgName)+": ");
+					process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 					process.stdout.write("install package in "+modDirname+" ... ");
 					
 					utils.untarData(tarData, tmpDirname, function(){
@@ -582,9 +583,10 @@ var nmod	= function(cmdline, cmdopts){
 						// install the dependancies 
 						nmod(["deps"], {
 							rootdir	 : dstDirname,
+							prefixStr: prefixStr,
 							successCb: function(){
 								// display for the user
-								process.stdout.write(tty_color.code(pkgName)+": installation completed\n");
+								process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
 								// notify the caller
 								successCb();
 							}
@@ -602,12 +604,12 @@ var nmod	= function(cmdline, cmdopts){
 		var pkgName	= require('path').basename(ROOTDIR);
 		var filename	= ROOTDIR+"/package.json";
 		// display for the user
-		process.stdout.write(tty_color.code(pkgName)+": installing dependancies in "+(ROOTDIR+"/node_modules")+"\n")
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependancies in "+(ROOTDIR+"/node_modules")+"\n")
 		// read package.json
 		try {
 			var pkgJsonData	= require('fs').readFileSync(filename);			
 		}catch(e){
-			process.stdout.write(tty_color.code(pkgName)+": skipped : no ./package.json\n")
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": skipped : no ./package.json\n")
 			successCb();
 			return;
 		}
@@ -615,7 +617,7 @@ var nmod	= function(cmdline, cmdopts){
 		var deps	= pkgJson.dependencies	|| {};
 		var depNames	= Object.keys(deps);
 		if( depNames.length == 0 ){
-			process.stdout.write(tty_color.code(pkgName)+": no dependancies in ./package.json\n")
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": no dependancies in ./package.json\n")
 			successCb();
 			return;
 		}
@@ -625,10 +627,11 @@ var nmod	= function(cmdline, cmdopts){
 			var depVersRange	= pkgJson.dependencies[depName];
 			//console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
 			//console.log("Install dependancy "+pkgName+"("+pkgVersRange+") in "+ROOTDIR)
-			process.stdout.write(tty_color.code(pkgName)+": installing dependancy "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependancy "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
 			// install the dependancies 
 			nmod(["install", depName, depVersRange], {
 				rootdir		: ROOTDIR,
+				prefixStr	: (prefixStr.length ? prefixStr : '') + pkgName + " > ",				
 				successCb	: function(){
 					if( depNames.length ){
 						// install the next dependency
@@ -703,6 +706,7 @@ exports.create	= function(cmdline, cmdopts){
 }
 
 /**
+ * Handle the execution if run as cmdline
 */
 var main	= function(){
 	//nmod(["ls"], {	rootdir	: "/tmp/slota" })
