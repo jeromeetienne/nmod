@@ -14,12 +14,18 @@
 
 var utils	= {
 	progressViewLine	: function(current, total){
+		// do nothing if the output is not a tty
+		if(!tty_color.isTty)	return;
+
 		var nbChar	= 40*(current/total);
 		process.stdout.write('\r');
 		for(var i = 0; i < nbChar; i++)
 			process.stdout.write('#');		
 	},
 	progressViewWheel	: function(current, total){
+		// do nothing if the output is not a tty
+		if(!tty_color.isTty)	return;
+
 		var percent	= current/total;
 		var chars	= ['|', '/','-', '\\'];
 		var charIdx	= Math.floor(percent/0.05) % chars.length;
@@ -156,10 +162,10 @@ var tty_color	= {};
 	exports.img_pos		= "\033[27m"
 
 	var stdoutFd	= 1;
-	var isTty	= require('tty').isatty(stdoutFd);
+	exports.isTty	= require('tty').isatty(stdoutFd);
 
 	exports.code	= function(str){
-		if(!isTty)	return str;
+		if(!exports.isTty)	return str;
 		return exports.fg_red + str + exports.all_off;
 	}
 	
