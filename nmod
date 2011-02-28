@@ -42,18 +42,26 @@ var utils	= {
 	fetchUrl	: function(urlStr, dataCb, errorCb){
 		dataCb	= dataCb || function(data){}
 		errorCb	= errorCb || function(error){}
-		var url	= require('url').parse(urlStr);
+		var url		= require('url').parse(urlStr);
+		var protocol	= url.protocol.substr(0, url.protocol.length-1);
 		var data= "";
 		var options = {
 			host	: url.hostname,
-			port	: (url.port||80),
+			port	: (url.port|| {'http': 80, 'https': 443}[protocol]),
 			path	: url.pathname
 		};
 		//console.log("fetching", urlStr)
-		var req	= require('http').request(options, function(res) {
+		var req	= require(protocol).request(options, function(res) {
 			var contentLength	= parseInt(res.headers["content-length"], 10)
-			//console.log('STATUS: ' + res.statusCode);
-			//console.log('HEADERS: ' + JSON.stringify(res.headers));
+			//console.log('STATUS: ', res.statusCode);
+			//console.log('HEADERS: ', res.headers);
+			
+			// honor the redirect if needed
+			if( res.statusCode >= 300 && res.statusCode < 400 ){
+				utils.fetchUrl(res.headers.location, dataCb, errorCb)
+				return;
+			}			
+			
 			res.setEncoding('binary');
 			res.on('data', function(chunk){
 				//console.log('BODY: ' + chunk);
@@ -478,6 +486,58 @@ var nmod	= function(cmdline, cmdopts){
 			failureCb(error)
 		})
 	}
+	
+	var installFromPkgUrl	= function(pkgUrl, pkgName, pkgVers, pkgJson){
+		utils.fetchUrl(pkgUrl, function(tarData){
+			var modDirname	= ROOTDIR+"/node_modules"
+			var tmpDirname	= modDirname+"/.tmp-"+pkgName+"-"+pkgVers;
+			var dstDirname	= modDirname+"/"+pkgName;
+			utils.rm_rfSync(tmpDirname);
+			utils.mkdir_pSync(tmpDirname, 0777);
+			
+			// display for the user
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
+			process.stdout.write("install package in "+modDirname+" ... ");
+			
+			// TODO handle zip too here
+			utils.untarData(tarData, tmpDirname, function(){
+				process.stdout.write("Done\n");
+	
+				// get the root directory basename from the package
+				var basenames	= require('fs').readdirSync(tmpDirname);
+				console.assert(basenames.length === 1)
+				//console.log("moving", tmpDirname+"/"+basenames[0], "to", dstDirname)
+				// move the untar package from tmpDirname to dstDirname
+				require('fs').rename(tmpDirname+"/"+basenames[0], dstDirname);
+				// remove tmpDirname
+				utils.rm_rfSync(tmpDirname);
+				// overwrite the package.json with the one from the server
+				// - not sure why it is needed, but ryp is doing it
+				// - maybe the package.json is canonized by the server... as isaacs
+				if( typeof pkgJson !== "undefined" ){
+					require('fs').writeFileSync(dstDirname+"/package.json", JSON.stringify(pkgJson), "binary")
+				}
+				// compile native extensions if needed
+				if( utils.existSync(dstDirname+"wscript") ){
+					//  ( cd ./node_modules/$pkg &>/dev/null; node-waf clean configure build )
+					// - example of native package nTPL
+					// - do this one like the untar
+					console.assert(false, "not yet implemented")
+				}
+				// install the dependancies 
+				nmod(["deps"], {
+					rootdir	 : dstDirname,
+					prefixStr: prefixStr,
+					successCb: function(){
+						// display for the user
+						process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
+						// notify the caller
+						successCb();
+					}
+				});
+			})
+		})		
+	}
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -529,78 +589,61 @@ var nmod	= function(cmdline, cmdopts){
 	}
 
 
-	var doCmdInstall	= function(pkgName, pkgVersRange){
+	var doCmdInstallNpm	= function(pkgName, pkgVersRange){
 		// log to debug
 		//console.log("pkgName", pkgName, "pkgVersRange", pkgVersRange)
-		//console.log("Installing "+pkgName+" in "+ ROOTDIR+"/node_modules")
 		
 		// display for the user
 		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 		process.stdout.write(pkgVersRange === ">= 0.0.0"? "latest version": ("version "+pkgVersRange));
 		process.stdout.write(" to be installed in "+(ROOTDIR+"/node_modules")+"\n")
 
-		// TODO what if already installed
-		// - currently this is silently overwritten...
-
 		findMatchPkgVers(pkgName, pkgVersRange, function(pkgVers){
-			var modDirname	= ROOTDIR+"/node_modules"
-			var tmpDirname	= modDirname+"/.tmp-"+pkgName+"-"+pkgVers;
-			var dstDirname	= modDirname+"/"+pkgName;
-			utils.rm_rfSync(tmpDirname);
-			utils.mkdir_pSync(tmpDirname, 0777);
-		
 			getPackageJson(pkgName, pkgVers, function(pkgJson){
-				var tarUrl	= pkgJson.dist.tarball;
-				//console.log("tarUrl", tarUrl);
-				
+				var pkgUrl	= pkgJson.dist.tarball;
 				// display for the user
 				process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 				process.stdout.write("fetch .tar data for version "+pkgVers+" ...");
-
-				utils.fetchUrl(tarUrl, function(tarData){
-					//console.log("untar "+tarUrl + " in " + ROOTDIR+"/node_modules")
-
-					// display for the user
-					process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
-					process.stdout.write("install package in "+modDirname+" ... ");
-					
-					utils.untarData(tarData, tmpDirname, function(){
-						process.stdout.write("Done\n");
-						
-						// get the root directory basename from the package
-						var basenames	= require('fs').readdirSync(tmpDirname);
-						console.assert(basenames.length === 1)
-						//console.log("moving", tmpDirname+"/"+basenames[0], "to", dstDirname)
-						// move the untar package from tmpDirname to dstDirname
-						require('fs').rename(tmpDirname+"/"+basenames[0], dstDirname);
-						// remove tmpDirname
-						utils.rm_rfSync(tmpDirname);
-						// overwrite the package.json with the one from the server
-						// - not sure why it is needed, but ryp is doing it
-						// - maybe the package.json is canonized by the server... as isaacs
-						require('fs').writeFileSync(dstDirname+"/package.json", JSON.stringify(pkgJson), "binary")
-						// compile native extensions if needed
-						if( utils.existSync(dstDirname+"wscript") ){
-							//  ( cd ./node_modules/$pkg &>/dev/null; node-waf clean configure build )
-							// - example of native package nTPL
-							// - do this one like the untar
-							console.assert(false, "not yet implemented")
-						}
-						// install the dependancies 
-						nmod(["deps"], {
-							rootdir	 : dstDirname,
-							prefixStr: prefixStr,
-							successCb: function(){
-								// display for the user
-								process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
-								// notify the caller
-								successCb();
-							}
-						});
-					})
-				})
+				// 
+				installFromPkgUrl(pkgUrl, pkgName, pkgVers, pkgJson);
 			});
 		});
+	}
+	
+	/**
+	*/
+	var doCmdInstallUrl	= function(pkgUrl){
+		// NOTE: super specific to github tar url
+		// - https://github.com/visionmedia/express/zipball/1.0.7
+		var urlPathname	= require('url').parse(pkgUrl).pathname;
+		var matches	= urlPathname.match(/\/([^/]*)\/([^/]*)\/([^/]*)\/([^/]*)/);
+		var pkgName	= matches[2];
+		var pkgVers	= matches[4];
+
+		// display for the user
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
+		process.stdout.write("fetch .tar data for version "+pkgVers+" ...");
+		
+		installFromPkgUrl(pkgUrl, pkgName, pkgVers);
+	}
+
+	/**
+	 * Install a package
+	 *
+	 * @param {String} pkgName is a npm package name or a url
+	 * @param {String} pkgVersRange semver version (valid IIF pkgName is a npm package)
+	*/
+	var doCmdInstall	= function(pkgName, pkgVersRange){
+		// TODO what if already installed
+		// - currently this is silently overwritten...
+
+		// call the proper installer depending
+		var pkgNameIsUrl	= ['http:', 'https:'].indexOf(require('url').parse(pkgName).protocol) != -1;
+		if( pkgNameIsUrl ){
+			doCmdInstallUrl(pkgName)
+		}else{
+			doCmdInstallNpm(pkgName, pkgVersRange)			
+		}
 	}
 
 	/**
@@ -686,14 +729,8 @@ var nmod	= function(cmdline, cmdopts){
 		return undefined;
 	}
 	
+	// init the function
 	parseCmdline(cmdline)
-
-	/**
-	 * Return public methods
-	*/
-	return {
-		// TODO should i put something in there ?	
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////
