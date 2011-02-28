@@ -1,13 +1,20 @@
-### TODO
-* provide at least as much as ryp
+### BUGS
+
 * better feedback to the user
   * download progress
   * error message
-* install from npm and git
-  * first publish without git
+* put the semver in nmod file
+* issue in the async of install
+  * i install all deps at the same time
+  * may be faster but disturb the user (and who care about speed in install)
 * DONE name: im not sure about the S in nmods
   * i prefere to type nmod when i use it
-  
+
+### VISION
+* provide at least as much as ryp
+* install from npm and git
+  * first publish without git
+
 
 ### NOTES (wondering if not too complex)
   
@@ -22,6 +29,7 @@
 * need simple instruction for packager to support it
 
 ### DONE
+
 * FIXED still some bugs in install with deps
   * nmods install express <- how to reproduce it
   * i think this is due to the bugs in the async
