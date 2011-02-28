@@ -2,12 +2,13 @@
 
 * complete npm install url
   * support tar+zip
-  * support git too ?
   * support any url but be better when you can (e.g. github url)
-* can i do a specific github
+* support git too ? well maybe but later. currently tar/zip will do
+  * can i do a specific github
   * like using github api instead of npmjs one
   * to fix the version flexibility of fixed tar
   * something like "tags" == all available versions
+  
 
 * nmod install notexistingpkg  do a crash...
 * allow a search
@@ -26,6 +27,13 @@
   * http://networkimprov.github.com/node-doc-api/all.html#addenda_Package_Manager_Tips
 * better report for nmod list ?
   * currently this is like a ls -R
+  * something like express (qs, connect(qs))
+   jerome@jmebox:/tmp/slota$ nmod list
+   ./node_modules/express
+   ./node_modules/express/node_modules/connect
+   ./node_modules/express/node_modules/connect/node_modules/qs
+   ./node_modules/express/node_modules/qs
+   jerome@jmebox:/tmp/slota$ express (sq, connect(qs))
 * better feedback to the user
   * download progress
   * error message
