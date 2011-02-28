@@ -1,0 +1,10 @@
+{
+	"name"		: "nmod",
+	"description"	: "node_modules manager",
+	"version"	: "0.0.1",
+	"author"	: "Jerome Etienne <jerome.etienne@gmail.com>",
+	"keywords"	: ["package", "install", "npm", "git"],
+	"main"		: "nmod",
+	"bin"		: { "nmod": "nmod" },
+	"engines"	: { "node": ">= 0.4.0" }
+}
