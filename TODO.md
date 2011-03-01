@@ -1,5 +1,11 @@
 ### BUGS
 
+
+* nmod install notexistingpkg  do a crash...
+* allow a search
+  * curl "http://search.npmjs.org/_view/search?startkey=%22express%22&endkey=%22expressZZZZZZZZZZZZZZZZZZZ%22&reduce=false"
+  * http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options for docs
+
 * complete npm install url
   * support tar+zip
   * support any url but be better when you can (e.g. github url)
@@ -10,10 +16,6 @@
   * something like "tags" == all available versions
   
 
-* nmod install notexistingpkg  do a crash...
-* allow a search
-  * curl "http://search.npmjs.org/_view/search?startkey=%22express%22&endkey=%22expressZZZZZZZZZZZZZZZZZZZ%22&reduce=false"
-  * http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options for docs
 * possible to put url in dependancies. but only .tgz, but github is tar ok
   * maybe find a shortcut like this
   * github to get the tgz... not perfect at all... but workable now
@@ -41,6 +43,8 @@
   * i install all deps at the same time
   * may be faster but disturb the user (and who care about speed in install)
   * unsure i did some work. not sure on the status but seems to work
+* DONE do the native package compilation
+  * rm -rf ./build && node-waf configure && node-waf build
 * DONE put the semver in nmod file
 * DONE name: im not sure about the S in nmods
   * i prefere to type nmod when i use it

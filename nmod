@@ -152,6 +152,27 @@ var utils	= {
 			require('fs').unlinkSync(tmpName);
 		})
 	},
+
+	/**
+	 * do node-waf to build the native extension
+	*/
+	nodeWafBuild	: function(dirName, successCb, failureCb){
+		successCb	= successCb || function(){};
+		failureCb	= failureCb || function(error){console.assert(false);}
+		var cmdline	= "(cd '"+dirName+"' && node-waf distclean configure build)" 	
+		var child	= require('child_process').exec(cmdline,
+			function (error, stdout, stderr) {
+				//console.log('stdout: ' + stdout);
+				//console.log('stderr: ' + stderr);
+				if (error !== null) {
+					process.stdout.write(tty_color.code("node-waf failed to build in "+dirName+"\n"));
+					process.stdout.write(stderr);
+					failureCb(error);
+				}else{
+					successCb();
+				}
+			});
+		}
 };
 
 var tty_color	= {};
@@ -523,24 +544,40 @@ var nmod	= function(cmdline, cmdopts){
 				if( typeof pkgJson !== "undefined" ){
 					require('fs').writeFileSync(dstDirname+"/package.json", JSON.stringify(pkgJson), "binary")
 				}
-				// compile native extensions if needed
-				if( utils.existSync(dstDirname+"wscript") ){
-					//  ( cd ./node_modules/$pkg &>/dev/null; node-waf clean configure build )
-					// - example of native package nTPL
-					// - do this one like the untar
-					console.assert(false, "not yet implemented")
+
+
+				/**
+				 * to install dependancies
+				*/
+				var installDeps	= function(){
+					nmod(["deps"], {
+						rootdir	 : dstDirname,
+						prefixStr: prefixStr,
+						successCb: function(){
+							// display for the user
+							process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
+							// notify the caller
+							successCb();
+						}
+					});					
 				}
-				// install the dependancies 
-				nmod(["deps"], {
-					rootdir	 : dstDirname,
-					prefixStr: prefixStr,
-					successCb: function(){
+
+console.log("dstDirname", dstDirname)
+				// compile native extensions if needed
+				// - e.g. bigint or nTpl
+				if( utils.existSync(dstDirname+"/wscript") ){
+					// display for the user
+					process.stdout.write(tty_color.code(prefixStr+pkgName)+": Building native code (node-waf)\n");
+					
+					utils.nodeWafBuild(dstDirname, function(){
 						// display for the user
-						process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
-						// notify the caller
-						successCb();
-					}
-				});
+						process.stdout.write(tty_color.code(prefixStr+pkgName)+": native code built\n");
+						installDeps();
+					})
+				}else{
+					// install the dependancies 
+					installDeps();
+				}
 			})
 		})		
 	}
