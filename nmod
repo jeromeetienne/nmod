@@ -160,19 +160,16 @@ var utils	= {
 		successCb	= successCb || function(){};
 		failureCb	= failureCb || function(error){console.assert(false);}
 		var cmdline	= "(cd '"+dirName+"' && node-waf distclean configure build)" 	
-		var child	= require('child_process').exec(cmdline,
-			function (error, stdout, stderr) {
-				//console.log('stdout: ' + stdout);
-				//console.log('stderr: ' + stderr);
-				if (error !== null) {
-					process.stdout.write(tty_color.code("node-waf failed to build in "+dirName+"\n"));
-					process.stdout.write(stderr);
-					failureCb(error);
-				}else{
-					successCb();
-				}
-			});
-		}
+		var child	= require('child_process').exec(cmdline, function (error, stdout, stderr){
+			if (error !== null) {
+				process.stdout.write(tty_color.code("node-waf failed to build in "+dirName+"\n"));
+				process.stdout.write(stderr);
+				failureCb(error);
+			}else{
+				successCb();
+			}
+		});
+	}
 };
 
 var tty_color	= {};
@@ -561,8 +558,6 @@ var nmod	= function(cmdline, cmdopts){
 						}
 					});					
 				}
-
-console.log("dstDirname", dstDirname)
 				// compile native extensions if needed
 				// - e.g. bigint or nTpl
 				if( utils.existSync(dstDirname+"/wscript") ){

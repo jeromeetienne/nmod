@@ -1,11 +1,13 @@
 ### BUGS
 
+* nmod install notexistingpkg  do a crash...
+
+### TODO
 
 * nmod install notexistingpkg  do a crash...
 * allow a search
   * curl "http://search.npmjs.org/_view/search?startkey=%22express%22&endkey=%22expressZZZZZZZZZZZZZZZZZZZ%22&reduce=false"
   * http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options for docs
-
 * complete npm install url
   * support tar+zip
   * support any url but be better when you can (e.g. github url)
@@ -14,19 +16,6 @@
   * like using github api instead of npmjs one
   * to fix the version flexibility of fixed tar
   * something like "tags" == all available versions
-  
-
-* possible to put url in dependancies. but only .tgz, but github is tar ok
-  * maybe find a shortcut like this
-  * github to get the tgz... not perfect at all... but workable now
-  * in fact nmod should support a tgz as source of package
-  * this is like the usual install without the version resolution
-  * nmod install express
-  * nmod install express '>= 0.0.3'
-  * nmod install http://github.com/slota.tgz
-  * nmod install https://github.com/isaacs/npm/tarball/v0.3.9
-* read and follow
-  * http://networkimprov.github.com/node-doc-api/all.html#addenda_Package_Manager_Tips
 * better report for nmod list ?
   * currently this is like a ls -R
   * something like express (qs, connect(qs))
@@ -36,10 +25,22 @@
    ./node_modules/express/node_modules/connect/node_modules/qs
    ./node_modules/express/node_modules/qs
    jerome@jmebox:/tmp/slota$ express (sq, connect(qs))
-* better feedback to the user
+   
+### DONE
+   
+* DONE better feedback to the user
   * download progress
   * error message
-* issue in the async of install
+* DONE possible to put url in dependancies. but only .tgz, but github is tar ok
+  * maybe find a shortcut like this
+  * github to get the tgz... not perfect at all... but workable now
+  * in fact nmod should support a tgz as source of package
+  * this is like the usual install without the version resolution
+  * nmod install express
+  * nmod install express '>= 0.0.3'
+  * nmod install http://github.com/slota.tgz
+  * nmod install https://github.com/isaacs/npm/tarball/v0.3.9
+* DONE issue in the async of install
   * i install all deps at the same time
   * may be faster but disturb the user (and who care about speed in install)
   * unsure i did some work. not sure on the status but seems to work
