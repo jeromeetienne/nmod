@@ -4,7 +4,6 @@
 
 ### TODO
 
-* nmod install notexistingpkg  do a crash...
 * allow a search
   * curl "http://search.npmjs.org/_view/search?startkey=%22express%22&endkey=%22expressZZZZZZZZZZZZZZZZZZZ%22&reduce=false"
   * http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options for docs

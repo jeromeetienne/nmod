@@ -60,7 +60,7 @@ var utils	= {
 			if( res.statusCode >= 300 && res.statusCode < 400 ){
 				utils.fetchUrl(res.headers.location, dataCb, errorCb)
 				return;
-			}			
+			}
 			
 			res.setEncoding('binary');
 			res.on('data', function(chunk){
@@ -191,6 +191,10 @@ var tty_color	= {};
 	exports.isTty	= require('tty').isatty(stdoutFd);
 
 	exports.code	= function(str){
+		if(!exports.isTty)	return str;
+		return exports.fg_green + str + exports.all_off;
+	}
+	exports.error	= function(str){
 		if(!exports.isTty)	return str;
 		return exports.fg_red + str + exports.all_off;
 	}
@@ -469,6 +473,10 @@ var nmod	= function(cmdline, cmdopts){
 		successCb	= successCb || function(pkgVers){};
 		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
 		getMetaJson(pkgName, function(metaJson){
+			if( 'error' in metaJson && 'reason' in metaJson ){
+				failureCb(metaJson.reason)
+				return;
+			}
 			var latestVers	= metaJson['dist-tags'].latest;
 			if( semver.satisfies(latestVers, pkgVersRange) ){
 				successCb(latestVers);
@@ -506,6 +514,9 @@ var nmod	= function(cmdline, cmdopts){
 	}
 	
 	/**
+	 *
+	 * Used while installing from npm and from tar
+	 *
 	 * @param {String} pkgUrl the url of the package to fetch
 	 * @param {String} pkgName the name of the package (display only ?)
 	 * @param {String} pkgVers the version of the package
@@ -552,7 +563,7 @@ var nmod	= function(cmdline, cmdopts){
 						prefixStr: prefixStr,
 						successCb: function(){
 							// display for the user
-							process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed\n");
+							process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed. All is "+tty_color.code('OK')+"\n");
 							// notify the caller
 							successCb();
 						}
@@ -645,6 +656,15 @@ var nmod	= function(cmdline, cmdopts){
 				// 
 				installFromPkgUrl(pkgUrl, pkgName, pkgVers, pkgJson);
 			});
+		}, function(error){
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
+			process.stdout.write(pkgVersRange === ">= 0.0.0"? "latest version": ("version "+pkgVersRange));
+			if(error === "document not found"){
+				process.stdout.write(tty_color.error(" cant be found")+"! ensure the package version exists\n");				
+			}else{
+				process.stdout.write(" installation "+tty_color.error("failed!")+" due to "+tty_color.error(error)+"\n");					
+			}
+			process.exit(-1);
 		});
 	}
 	
