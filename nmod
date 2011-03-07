@@ -473,33 +473,26 @@ var nmod	= function(cmdline, cmdopts){
 		successCb	= successCb || function(pkgVers){};
 		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
 		getMetaJson(pkgName, function(metaJson){
+			// detect error from couchdb
 			if( 'error' in metaJson && 'reason' in metaJson ){
 				failureCb(metaJson.reason)
 				return;
 			}
+			// check all versions and pick the latest which match pkgVersRange
 			// NOTE: do not rely on metaJson['dist-tags'].latest
 			// - it isnt always valid.
 			// - var latestVers = metaJson['dist-tags'].latest;
-			
-					
-			// check all versions and pick the latest which match pkgVersRange
 			var latestVers	 = null;
 			Object.keys(metaJson.versions).forEach(function(version){
 				// if this version doesnt match pkgVersRange, ignore it
 				if( !semver.satisfies(version, pkgVersRange) )	return;
-				if( !latestVers ){
-					latestVers	= version
-				}else if( semver.gt(version, latestVers) ){
+				if( !latestVers || semver.gt(version, latestVers) ){
 					latestVers	= version
 				}
 			})
-		
-		
-			if( latestVers ){
-				successCb(latestVers);
-			}else{
-				failureCb("no version match");			
-			}
+			// notify the caller				
+			if( latestVers )	successCb(latestVers);
+			else			failureCb("no version match");			
 		})
 	}
 
