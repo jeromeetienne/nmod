@@ -105,7 +105,6 @@ var utils	= {
 	 * Do a rm-rf in node
 	*/
 	rm_rfSync	: function(dirName){
-		//console.log("rm_rfSync", dirName)
 		var fs		= require('fs')
 		var stats	= null;
 		try {
@@ -553,7 +552,7 @@ var nmod	= function(cmdline, cmdopts){
 				console.assert(basenames.length === 1)
 				//console.log("moving", tmpDirname+"/"+basenames[0], "to", dstDirname)
 				// move the untar package from tmpDirname to dstDirname
-				require('fs').rename(tmpDirname+"/"+basenames[0], dstDirname);
+				require('fs').renameSync(tmpDirname+"/"+basenames[0], dstDirname);
 				// remove tmpDirname
 				utils.rm_rfSync(tmpDirname);
 				// overwrite the package.json with the one from the server
