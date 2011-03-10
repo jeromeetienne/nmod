@@ -32,6 +32,27 @@ var utils	= {
 		var aChar	= chars[charIdx];
 		process.stdout.write(aChar+tty_color.cursorBackOne);
 	},
+	httpCacheEnable	: function(){
+		return process.env['NMOD_CACHE'] !== undefined;
+	},
+	httpCacheFname	: function(url){
+		var dirname	= process.env['NMOD_CACHE_DIR'] || '/tmp/nmod_cache';
+		var basename	= require('crypto').createHash('md5').update(url).digest("hex");
+		var filename	= require("path").join(dirname, basename);
+		return filename;
+	},
+	httpCacheGet	: function(url){
+		var filename	= utils.httpCacheFname(url);
+		if( !url.httpCacheEnable() )		return null;
+		if( !utils.existSync(filename) )	return null;
+		var data	= require('fs').readFileSync(filename);
+		return data;
+	},
+	httpCachePush	: function(url, data){
+		var filename	= utils.httpCacheFname(url);
+		if( !url.httpCacheEnable() )		return;
+		require('fs').writeFileSync(filename, data, "binary");
+	},
 	/**
 	 * Fetch content of a url
 	 *
@@ -594,8 +615,7 @@ var nmod	= function(cmdline, cmdopts){
 				// - e.g. bigint or nTpl
 				if( utils.existSync(dstDirname+"/wscript") ){
 					// display for the user
-					process.stdout.write(tty_color.code(prefixStr+pkgName)+": Building native code (node-waf)\n");
-					
+					process.stdout.write(tty_color.code(prefixStr+pkgName)+": Building native code (node-waf)\n")
 					utils.nodeWafBuild(dstDirname, function(){
 						// display for the user
 						process.stdout.write(tty_color.code(prefixStr+pkgName)+": native code built\n");
