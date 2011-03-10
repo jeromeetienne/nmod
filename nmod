@@ -44,12 +44,21 @@ var utils	= {
 		errorCb	= errorCb || function(error){}
 		var url		= require('url').parse(urlStr);
 		var protocol	= url.protocol.substr(0, url.protocol.length-1);
-		var data= "";
+		var data	= "";
 		var options = {
 			host	: url.hostname,
 			port	: (url.port|| {'http': 80, 'https': 443}[protocol]),
-			path	: url.pathname
+			path	: url.pathname,
+			headers	: {}
 		};
+		// handle http proxy - from Vladimir Dronnikov dvv@github
+		if(process.env[protocol+'_proxy']||process.env.http_proxy) {
+			var proxy = require('url').parse(process.env[protocol+'_proxy']||process.env.http_proxy);
+			options.headers.host = options.host;
+			options.port = proxy.port || 80;
+			options.host = proxy.hostname;
+			options.path = urlStr;
+		}		
 		//console.log("fetching", urlStr)
 		var req	= require(protocol).request(options, function(res) {
 			var contentLength	= parseInt(res.headers["content-length"], 10)
@@ -561,8 +570,7 @@ var nmod	= function(cmdline, cmdopts){
 				if( typeof pkgJson !== "undefined" ){
 					require('fs').writeFileSync(dstDirname+"/package.json", JSON.stringify(pkgJson), "binary")
 				}
-
-
+				
 				/**
 				 * to install dependancies
 				*/
