@@ -12,6 +12,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 
+var cwd = process.cwd()
+
 var utils	= {
 	progressViewLine	: function(current, total){
 		// do nothing if the output is not a tty
@@ -20,7 +22,7 @@ var utils	= {
 		var nbChar	= 40*(current/total);
 		process.stdout.write('\r');
 		for(var i = 0; i < nbChar; i++)
-			process.stdout.write('#');		
+			process.stdout.write('#');
 	},
 	progressViewWheel	: function(current, total){
 		// do nothing if the output is not a tty
@@ -79,19 +81,19 @@ var utils	= {
 			options.port = proxy.port || 80;
 			options.host = proxy.hostname;
 			options.path = urlStr;
-		}		
+		}
 		//console.log("fetching", urlStr)
 		var req	= require(protocol).request(options, function(res) {
 			var contentLength	= parseInt(res.headers["content-length"], 10)
 			//console.log('STATUS: ', res.statusCode);
 			//console.log('HEADERS: ', res.headers);
-			
+
 			// honor the redirect if needed
 			if( res.statusCode >= 300 && res.statusCode < 400 ){
 				utils.fetchUrl(res.headers.location, dataCb, errorCb)
 				return;
 			}
-			
+
 			res.setEncoding('binary');
 			res.on('data', function(chunk){
 				//console.log('BODY: ' + chunk);
@@ -106,7 +108,7 @@ var utils	= {
 		req.end();
 		req.on('error', errorCb);
 	},
-	
+
 	/**
 	 * like mkdir -p
 	 *
@@ -138,7 +140,7 @@ var utils	= {
 		var fs		= require('fs')
 		var stats	= null;
 		try {
-			stats	= fs.lstatSync(dirName)			
+			stats	= fs.lstatSync(dirName)
 		}catch(e){
 			return;	// silently ignore if the dirName doesnt exist
 		}
@@ -152,7 +154,7 @@ var utils	= {
 		})
 		fs.rmdirSync(dirName);
 	},
-	
+
 	/**
 	 * return true if the path exist, false otherwiser
 	*/
@@ -164,7 +166,7 @@ var utils	= {
 		}
 		return true;
 	},
-	
+
 	/**
 	*/
 	untarData	: function(data, dstDirName, successCb, failureCb){
@@ -172,7 +174,7 @@ var utils	= {
 		failureCb	= failureCb || function(error){console.log("error", error); console.assert(false);}
 		var tmpName	= "/tmp/nmod-"+Math.floor(Math.random()*999999).toString(36)+".tgz"
 		require('fs').writeFileSync(tmpName, data, "binary")
-	
+
 		var cmdArgs	= ["-C", dstDirName, "-zxf", tmpName];
 		var spawn	= require('child_process').spawn("tar", cmdArgs);
 		spawn.on('exit', function(exitStatus){
@@ -188,7 +190,7 @@ var utils	= {
 	nodeWafBuild	: function(dirName, successCb, failureCb){
 		successCb	= successCb || function(){};
 		failureCb	= failureCb || function(error){console.assert(false);}
-		var cmdline	= "(cd '"+dirName+"' && node-waf distclean configure build)" 	
+		var cmdline	= "(cd '"+dirName+"' && node-waf distclean configure build)"
 		var child	= require('child_process').exec(cmdline, function (error, stdout, stderr){
 			if (error !== null) {
 				process.stdout.write(tty_color.error("node-waf failed to build in "+dirName+"\n"));
@@ -227,7 +229,7 @@ var tty_color	= {};
 		if(!exports.isTty)	return str;
 		return exports.fg_red + str + exports.all_off;
 	}
-	
+
 })(tty_color);
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -244,7 +246,7 @@ var semver	= {};
 	// See http://semver.org/
 	// This implementation is a *hair* less strict in that it allows
 	// v1.2.3 things, and also tags that don't begin with a char.
-	
+
 	var semver = "[v=]*([0-9]+)"                // major
 		   + "\\.([0-9]+)"                  // minor
 		   + "\\.([0-9]+)"                  // patch
@@ -265,7 +267,7 @@ var semver	= {};
 	Object.getOwnPropertyNames(expressions).forEach(function (i) {
 	  exports[i] = function (str) { return (str || "").match(expressions[i]) }
 	})
-	
+
 	exports.rangeReplace = ">=$1 <=$7"
 	exports.clean = clean
 	exports.compare = compare
@@ -276,7 +278,7 @@ var semver	= {};
 	exports.validPackage = validPackage
 	exports.validRange = validRange
 	exports.maxSatisfying = maxSatisfying
-	
+
 	function clean (ver) {
 	  v = exports.parse(ver)
 	  if (!v) return v
@@ -288,7 +290,7 @@ var semver	= {};
 	function validPackage (version) {
 	  return version.match(expressions.parsePackage) && version.trim()
 	}
-	
+
 	// range can be one of:
 	// "1.0.3 - 2.0.0" range, inclusive, like ">=1.0.3 <=2.0.0"
 	// ">1.0.2" like 1.0.3 - 9999.9999.9999
@@ -299,7 +301,7 @@ var semver	= {};
 	  , starReplace = ""
 	  , compTrimExpression = new RegExp("((<|>)?=?)\\s*("+semver+")", "g")
 	  , compTrimReplace = "$1$3"
-	
+
 	function toComparators (range) {
 	  return (range || "").trim()
 	    .replace(expressions.parseRange, exports.rangeReplace)
@@ -318,7 +320,7 @@ var semver	= {};
 	    })
 	    .filter(function (c) { return c.length })
 	}
-	
+
 	// "2.x","2.x.x" --> ">=2.0.0 <2.1"
 	// "2.3.x" --> ">=2.3.0 <2.4.0"
 	function replaceXRanges (ranges) {
@@ -332,7 +334,7 @@ var semver	= {};
 	    var anyX = !M || M.toLowerCase() === "x"
 		       || !m || m.toLowerCase() === "x"
 		       || !p || p.toLowerCase() === "x"
-	
+
 	    if (gtlt && anyX) {
 	      // just replace x'es with zeroes
 	      ;(!M || M.toLowerCase() === "x") && (M = 0)
@@ -340,7 +342,7 @@ var semver	= {};
 	      ;(!p || p.toLowerCase() === "x") && (p = 0)
 	      return gtlt + M+"."+m+"."+p
 	    }
-	
+
 	    if (!M || M.toLowerCase() === "x") {
 	      return "*" // allow any
 	    }
@@ -353,7 +355,7 @@ var semver	= {};
 	    return v // impossible?
 	  })
 	}
-	
+
 	// ~, ~> --> * (any, kinda silly)
 	// ~2, ~2.x, ~2.x.x, ~>2, ~>2.x ~>2.x.x --> >=2.0.0 <3.0.0
 	// ~2.0, ~2.0.x, ~>2.0, ~>2.0.x --> >=2.0.0 <2.1.0
@@ -377,7 +379,7 @@ var semver	= {};
 	    return ">="+M+"."+m+"."+p+" <"+M+"."+(+m+1)+".0"
 	  })
 	}
-	
+
 	function validRange (range) {
 	  range = range.trim().replace(starExpression, starReplace)
 	  var c = toComparators(range)
@@ -385,7 +387,7 @@ var semver	= {};
 	       ? null
 	       : c.map(function (c) { return c.join(" ") }).join("||")
 	}
-	
+
 	// returns the highest satisfying version in the list, or undefined
 	function maxSatisfying (versions, range) {
 	  return versions
@@ -416,14 +418,14 @@ var semver	= {};
 	  }
 	  return false
 	}
-	
+
 	// return v1 > v2 ? 1 : -1
 	function compare (v1, v2) {
 	  return v1 === v2 ? 0 : gt(v1, v2) ? 1 : -1
 	}
-	
+
 	function lt (v1, v2) { return gt(v2, v1) }
-	
+
 	// return v1 > v2
 	function num (v) {
 	  return v === undefined ? -1 : parseInt((v||"0").replace(/[^0-9]+/g, ''), 10)
@@ -432,7 +434,7 @@ var semver	= {};
 	  v1 = exports.parse(v1)
 	  v2 = exports.parse(v2)
 	  if (!v1 || !v2) return false
-	
+
 	  for (var i = 1; i < 5; i ++) {
 	    v1[i] = num(v1[i])
 	    v2[i] = num(v2[i])
@@ -443,7 +445,7 @@ var semver	= {};
 	  var tag1 = v1[5] || ""
 	    , tag2 = v2[5] || ""
 	  return !!tag2 && (!tag1 || tag1 > tag2)
-	}	
+	}
 })(semver);
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -459,7 +461,7 @@ var nmod	= function(cmdline, cmdopts){
 	var prefixStr	= cmdopts.prefixStr	|| "";
 	var successCb	= cmdopts.successCb	|| function(data){};
 	var failureCb	= cmdopts.failureCb	|| function(error){console.log("error", error); console.assert(false);}
-	
+
 	/**
 	 * Fetch the package.json of the package
 	*/
@@ -519,9 +521,9 @@ var nmod	= function(cmdline, cmdopts){
 					latestVers	= version
 				}
 			})
-			// notify the caller				
+			// notify the caller
 			if( latestVers )	successCb(latestVers);
-			else			failureCb("no version match");			
+			else			failureCb("no version match");
 		})
 	}
 
@@ -538,7 +540,7 @@ var nmod	= function(cmdline, cmdopts){
 			failureCb(error)
 		})
 	}
-	
+
 	/**
 	 * fetch dependencies in the package.json of pkgName/pkgVers
 	*/
@@ -551,7 +553,7 @@ var nmod	= function(cmdline, cmdopts){
 			failureCb(error)
 		})
 	}
-	
+
 	/**
 	 *
 	 * Used while installing from npm and from tar
@@ -568,15 +570,15 @@ var nmod	= function(cmdline, cmdopts){
 			var dstDirname	= modDirname+"/"+pkgName;
 			utils.rm_rfSync(tmpDirname);
 			utils.mkdir_pSync(tmpDirname, 0777);
-			
+
 			// display for the user
 			process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 			process.stdout.write("install package in "+modDirname+" ... ");
-			
+
 			// TODO handle zip too here
 			utils.untarData(tarData, tmpDirname, function(){
 				process.stdout.write("Done\n");
-	
+
 				// get the root directory basename from the package
 				var basenames	= require('fs').readdirSync(tmpDirname);
 				console.assert(basenames.length === 1)
@@ -585,7 +587,7 @@ var nmod	= function(cmdline, cmdopts){
 				// - NOTE iif dstDirname doesnt exist. not to overwrite 
 				// - e.g. npm is shipped with a node_modules already
 				if( utils.existSync(dstDirname) === false ){
-					require('fs').renameSync(tmpDirname+"/"+basenames[0], dstDirname);					
+					require('fs').renameSync(tmpDirname+"/"+basenames[0], dstDirname);
 				}
 				// remove tmpDirname
 				utils.rm_rfSync(tmpDirname);
@@ -597,19 +599,26 @@ var nmod	= function(cmdline, cmdopts){
 				}
 
 				/**
-				 * to install dependancies
+				 * to install dependencies
 				*/
 				var installDeps	= function(){
 					nmod(["deps"], {
+						// DVV: fix rootdir
 						rootdir	 : dstDirname,
 						prefixStr: prefixStr,
 						successCb: function(){
+							// DVV: linking to topmost node_modules
+							process.stdout.write("linking "+dstDirname+" to "+cwd+ "/node_modules ...\n");
+							//try {
+								console.error(dstDirname.replace('./node_modules/',''), cwd + '/node_modules/');
+								require('fs').symlinkSync(dstDirname.replace('./node_modules/',''), cwd + '/node_modules/' + require('path').basename(dstDirname));
+							//} catch (err) {}
 							// display for the user
 							process.stdout.write(tty_color.code(prefixStr+pkgName)+": installation completed. All is "+tty_color.code('OK')+"\n");
 							// notify the caller
 							successCb();
 						}
-					});					
+					});
 				}
 				// compile native extensions if needed
 				// - e.g. bigint or nTpl
@@ -624,11 +633,11 @@ var nmod	= function(cmdline, cmdopts){
 						installDeps();
 					})
 				}else{
-					// install the dependancies 
+					// install the dependencies 
 					installDeps();
 				}
 			})
-		})		
+		})
 	}
 
 
@@ -649,7 +658,7 @@ var nmod	= function(cmdline, cmdopts){
 		var dirname	= ROOTDIR+"/node_modules";
 		var basenames	= [];
 		try {
-			var basenames	= fs.readdirSync(dirname).sort();			
+			var basenames	= fs.readdirSync(dirname).sort();
 		}catch(e){}
 		basenames.forEach(function(basename){
 			var fullpath	= dirname+"/"+basename;
@@ -659,7 +668,7 @@ var nmod	= function(cmdline, cmdopts){
 			try {
 				if( fs.statSync(fullpath).isDirectory() ){
 					nmod(["ls"], { rootdir	: fullpath });
-				}				
+				}
 			}catch(e){}
 		})
 	}
@@ -684,7 +693,7 @@ var nmod	= function(cmdline, cmdopts){
 	var doCmdInstallNpm	= function(pkgName, pkgVersRange){
 		// log to debug
 		//console.log("pkgName", pkgName, "pkgVersRange", pkgVersRange)
-		
+
 		// display for the user
 		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 		process.stdout.write(pkgVersRange === ">= 0.0.0"? "latest version": ("version "+pkgVersRange));
@@ -703,14 +712,14 @@ var nmod	= function(cmdline, cmdopts){
 			process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 			process.stdout.write(pkgVersRange === ">= 0.0.0"? "latest version": ("version "+pkgVersRange));
 			if(error === "document not found"){
-				process.stdout.write(tty_color.error(" cant be found")+"! ensure the package version exists\n");				
+				process.stdout.write(tty_color.error(" cant be found")+"! ensure the package version exists\n");
 			}else{
-				process.stdout.write(" installation "+tty_color.error("failed!")+" due to "+tty_color.error(error)+"\n");					
+				process.stdout.write(" installation "+tty_color.error("failed!")+" due to "+tty_color.error(error)+"\n");
 			}
 			process.exit(-1);
 		});
 	}
-	
+
 	/**
 	*/
 	var doCmdInstallUrl	= function(pkgUrl){
@@ -724,7 +733,7 @@ var nmod	= function(cmdline, cmdopts){
 		// display for the user
 		process.stdout.write(tty_color.code(prefixStr+pkgName)+": ");
 		process.stdout.write("fetch .tar data for version "+pkgVers+" ...");
-		
+
 		installFromPkgUrl(pkgUrl, pkgName, pkgVers);
 	}
 
@@ -736,6 +745,14 @@ var nmod	= function(cmdline, cmdopts){
 	*/
 	var doCmdInstall	= function(pkgName, pkgVersRange){
 		// TODO what if already installed
+		// DVV: reuse existing packages
+		try {
+			console.error('REQUIRETRIED', process.cwd(), './node_modules/' + pkgName);
+			require('./node_modules/' + pkgName);
+			return;
+		} catch(err) {
+			console.error('REQUIREFAILED', process.cwd(), './node_modules/' + pkgName, err.stack);
+		}
 		// - currently this is silently overwritten...
 
 		// call the proper installer depending
@@ -743,7 +760,7 @@ var nmod	= function(cmdline, cmdopts){
 		if( pkgNameIsUrl ){
 			doCmdInstallUrl(pkgName)
 		}else{
-			doCmdInstallNpm(pkgName, pkgVersRange)			
+			doCmdInstallNpm(pkgName, pkgVersRange)
 		}
 	}
 
@@ -754,10 +771,10 @@ var nmod	= function(cmdline, cmdopts){
 		var pkgName	= require('path').basename(ROOTDIR);
 		var filename	= ROOTDIR+"/package.json";
 		// display for the user
-		process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependancies in "+(ROOTDIR+"/node_modules")+"\n")
+		process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependencies in "+(ROOTDIR+"/node_modules")+"\n")
 		// read package.json
 		try {
-			var pkgJsonData	= require('fs').readFileSync(filename);			
+			var pkgJsonData	= require('fs').readFileSync(filename);
 		}catch(e){
 			process.stdout.write(tty_color.code(prefixStr+pkgName)+": skipped : no ./package.json\n")
 			successCb();
@@ -767,21 +784,21 @@ var nmod	= function(cmdline, cmdopts){
 		var deps	= pkgJson.dependencies	|| {};
 		var depNames	= Object.keys(deps);
 		if( depNames.length == 0 ){
-			process.stdout.write(tty_color.code(prefixStr+pkgName)+": no dependancies in ./package.json\n")
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": no dependencies in ./package.json\n")
 			successCb();
 			return;
 		}
-		
-		// reccursive function to install dependencies sequentially
+
+		// recursive function to install dependencies sequentially
 		var installDep	= function(depName){
 			var depVersRange	= pkgJson.dependencies[depName];
 			//console.log("pkgName", pkgName, "pkgVers", pkgVersRange)
-			//console.log("Install dependancy "+pkgName+"("+pkgVersRange+") in "+ROOTDIR)
-			process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependancy "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
-			// install the dependancies 
+			//console.log("Install dependency "+pkgName+"("+pkgVersRange+") in "+ROOTDIR)
+			process.stdout.write(tty_color.code(prefixStr+pkgName)+": installing dependency "+tty_color.code(depName+"("+depVersRange+")")+" in "+(ROOTDIR+"/node_modules")+"\n")
+			// install the dependencies 
 			nmod(["install", depName, depVersRange], {
 				rootdir		: ROOTDIR,
-				prefixStr	: (prefixStr.length ? prefixStr : '') + pkgName + " > ",				
+				prefixStr	: (prefixStr.length ? prefixStr : '') + pkgName + " > ",
 				successCb	: function(){
 					if( depNames.length ){
 						// install the next dependency
@@ -790,9 +807,9 @@ var nmod	= function(cmdline, cmdopts){
 						successCb();
 					}
 				}
-			});			
+			});
 		}
-		// launch the install of the first dependancy
+		// launch the install of the first dependency
 		installDep( depNames.shift() )
 	}
 
@@ -829,7 +846,7 @@ var nmod	= function(cmdline, cmdopts){
 		}
 		return undefined;
 	}
-	
+
 	// init the function
 	parseCmdline(cmdline)
 }
@@ -856,26 +873,27 @@ var main	= function(){
 	//nmod(["ls"], {	rootdir	: "/tmp/slota" })
 	//nmod(["install", "underscore"], {	rootdir	: "/tmp/bla" })
 	//nmod(["deps"], {	rootdir	: "/tmp/slota/node_modules/connect" })
-	
+
 	//utils.rm_rfSync("/tmp/bla/node_modules")
 	//nmod(["install", "qs", ">= 0.0.6"], {	rootdir	: "/tmp/bla" })
 	//nmod(["install", "express"], {	rootdir	: "/tmp/bla" })
-	
+
 	//utils.mkdir_pSync("/tmp/slota/wow", 0777)
 	//utils.rm_rfSync("/tmp/bla/node_modules")
-	
+
 	// honor NMOD_ROOT if needed, else default to ./
-	var ROOTDIR	= process.env["NMOD_ROOT"]	|| '.';
-	
+	//var ROOTDIR	= process.env["NMOD_ROOT"]	|| '.';
+	var ROOTDIR	= process.env["NMOD_ROOT"] ? cwd = process.env["NMOD_ROOT"] : '.';
+
 	nmod(process.argv.slice(2), {
 		rootdir		: ROOTDIR,
 		successCb	: function(){
 		},
-		failureCb	: function(error){					
-		}				
+		failureCb	: function(error){
+		}
 	})
 }
 
-if (module === require.main) {
+if (!module.parent) {
 	main();
 }
