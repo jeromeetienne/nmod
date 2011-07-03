@@ -35,4 +35,4 @@ All commands
 *nmod* is a [single node file](http://github.com/jeromeetienne/nmod/raw/master/nmod), so easy to install
 
     sudo wget -O /usr/bin/nmod --no-check-certificate http://github.com/jeromeetienne/nmod/raw/master/nmod
-    chmod +x /usr/bin/nmod
+    sudo chmod +x /usr/bin/nmod
